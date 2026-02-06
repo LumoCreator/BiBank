@@ -251,8 +251,8 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Исправленная инициализация: добавлен параметр apiVersion для предотвращения 404
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        // Исправлено: добавлено явное указание apiVersion для предотвращения 404
         const model = genAI.getGenerativeModel({ 
             model: "gemini-1.5-flash",
             apiVersion: "v1" 
@@ -469,7 +469,6 @@
              navTab('screen-home', document.querySelector('.nav-item'));
         });
 
-        // --- GEMINI AI (ИСПРАВЛЕНО) ---
         window.handleChat = (btn) => protectBtn(btn, async () => {
             const input = document.getElementById('chat-input');
             const text = input.value;
@@ -484,8 +483,8 @@
             const systemPrompt = `Ты помощник банка BiBank. Твой тон: вежливый, краткий. Данные пользователя: ${balanceContext}. Если вопрос не про банк, финансы или приложение, ответь: "Я могу помочь только с вопросами по BiBank". Не пиши длинно.`;
 
             try {
-                // Прямой вызов generateContent для большей стабильности
-                const result = await model.generateContent(systemPrompt + "\n\nВопрос пользователя: " + text);
+                // Прямой вызов generateContent для большей стабильности в веб-среде
+                const result = await model.generateContent(systemPrompt + "\n\nКлиент: " + text);
                 const response = await result.response;
                 const reply = response.text();
                 
@@ -494,10 +493,8 @@
             } catch(e) {
                 console.error("Gemini Error:", e);
                 let errorMsg = "Ошибка связи с ИИ.";
-                if (e.message.includes("404")) errorMsg = "Ошибка: Модель не найдена (404).";
-                else if (e.message.includes("403")) errorMsg += " (Доступ запрещен. Нужен VPN?)";
-                else if (e.message.includes("fetch")) errorMsg += " (Сетевая ошибка)";
-                
+                if (e.message.includes("403")) errorMsg += " (Доступ запрещен. Нужен VPN?)";
+                if (e.message.includes("fetch")) errorMsg += " (Сетевая ошибка)";
                 chatBox.innerHTML += `<div class="msg ai" style="color:var(--danger)">${errorMsg} <br><small>${e.message}</small></div>`;
             }
         });
