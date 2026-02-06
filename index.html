@@ -235,6 +235,7 @@
         import { getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, increment, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
+        // --- КОНФИГУРАЦИЯ ---
         const firebaseConfig = {
             apiKey: "AIzaSyC1f33BCIiSV6JL9HMquLmTgy74NJz8HJ8",
             authDomain: "bibankk.firebaseapp.com",
@@ -251,17 +252,16 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
+        // СТАБИЛЬНАЯ ИНИЦИАЛИЗАЦИЯ (v1 API)
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        // Исправлено: добавлено явное указание apiVersion для предотвращения 404
-        const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
-            apiVersion: "v1" 
-        });
+        // Используем 'v1' вместо дефолтного v1beta, чтобы избежать 404
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
         
         let currentUser = null;
         let userCards = [];
         let selectedColor = '#FF6B00';
 
+        // --- UI ЛОГИКА ---
         window.nav = (screenId) => {
             document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
@@ -290,6 +290,7 @@
             finally { btn.classList.remove('loading'); }
         }
 
+        // --- AUTH ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -315,6 +316,7 @@
             const surname = document.getElementById('reg-surname').value;
             const email = document.getElementById('reg-email').value;
             const pass = document.getElementById('reg-pass').value;
+
             if(!name || !email || !pass) throw new Error("Заполните все поля");
             const cred = await createUserWithEmailAndPassword(auth, email, pass);
             const uid = cred.user.uid;
@@ -335,6 +337,7 @@
             signOut(auth);
         };
 
+        // --- ОСНОВНАЯ ЛОГИКА ---
         function initApp() {
             document.getElementById('screen-login').classList.add('hidden');
             document.getElementById('screen-register').classList.add('hidden');
@@ -362,7 +365,15 @@
                 snapshot.forEach(doc => {
                     const t = doc.data();
                     const isPlus = t.type === 'in';
-                    txList.innerHTML += `<div class="tx-item"><div class="tx-icon"><i class="fa-solid ${isPlus ? 'fa-arrow-down' : 'fa-arrow-up'}"></i></div><div class="tx-info"><span class="tx-title">${t.title}</span><span class="tx-date">${t.date?.toDate ? t.date.toDate().toLocaleDateString() : 'Сейчас'}</span></div><div class="tx-amount ${isPlus ? 'plus' : ''}">${isPlus ? '+' : '-'}${t.amount} ₽</div></div>`;
+                    txList.innerHTML += `
+                    <div class="tx-item">
+                        <div class="tx-icon"><i class="fa-solid ${isPlus ? 'fa-arrow-down' : 'fa-arrow-up'}"></i></div>
+                        <div class="tx-info">
+                            <span class="tx-title">${t.title}</span>
+                            <span class="tx-date">${t.date?.toDate ? t.date.toDate().toLocaleDateString() : 'Сейчас'}</span>
+                        </div>
+                        <div class="tx-amount ${isPlus ? 'plus' : ''}">${isPlus ? '+' : '-'}${t.amount} ₽</div>
+                    </div>`;
                 });
             });
         }
@@ -371,7 +382,7 @@
             const cardNum = generateLuhnCard();
             const cvv = Math.floor(100 + Math.random() * 900);
             const exp = "12/30";
-            await addDoc(collection(db, `users/${uid}/cards`), { number: cardNum, cvv: cvv, exp: exp, balance: initialBalance, color: color, holder: uid });
+            await addDoc(collection(db, `users/${uid}/cards`), { number: cardNum, cvv, exp, balance: initialBalance, color, holder: uid });
         }
 
         function generateLuhnCard() {
@@ -388,15 +399,8 @@
         window.switchPayTab = (type) => {
             const p2p = document.getElementById('p2p-fields');
             const me = document.getElementById('me-fields');
-            const btnP2p = document.getElementById('tab-p2p');
-            const btnMe = document.getElementById('tab-me');
-            if(type === 'p2p') {
-                p2p.classList.remove('hidden'); me.classList.add('hidden');
-                btnP2p.style.color = 'var(--text)'; btnMe.style.color = 'var(--text-sec)';
-            } else {
-                p2p.classList.add('hidden'); me.classList.remove('hidden');
-                btnP2p.style.color = 'var(--text-sec)'; btnMe.style.color = 'var(--text)';
-            }
+            if(type === 'p2p') { p2p.classList.remove('hidden'); me.classList.add('hidden'); } 
+            else { p2p.classList.add('hidden'); me.classList.remove('hidden'); }
         };
 
         function loadCardsForPay() {
@@ -422,10 +426,6 @@
                     label.innerText = `Получатель: ${u.name} ${u.surname}`;
                     label.style.display = 'block';
                 }
-            } else {
-                label.innerText = "Поиск карты...";
-                label.style.display = 'block';
-                setTimeout(() => label.innerText = "Держатель карты BiBank", 500);
             }
         };
 
@@ -441,21 +441,16 @@
                 const fromRef = doc(db, `users/${currentUser.uid}/cards/${fromId}`);
                 if(isMe) {
                     const toId = document.getElementById('pay-to-card').value;
-                    if(fromId === toId) throw new Error("Карты должны быть разными");
                     const toRef = doc(db, `users/${currentUser.uid}/cards/${toId}`);
                     transaction.update(fromRef, { balance: increment(-amount) });
                     transaction.update(toRef, { balance: increment(amount) });
-                    const txRef = doc(collection(db, `users/${currentUser.uid}/transactions`));
-                    transaction.set(txRef, { title: "Перевод между своими", amount: amount, type: "out", date: serverTimestamp() });
+                    transaction.set(doc(collection(db, `users/${currentUser.uid}/transactions`)), { title: "Между своими", amount, type: "out", date: serverTimestamp() });
                 } else {
-                    const recipientInput = document.getElementById('pay-to').value;
                     transaction.update(fromRef, { balance: increment(-amount) });
-                    const txRef = doc(collection(db, `users/${currentUser.uid}/transactions`));
-                    transaction.set(txRef, { title: `Перевод: ${recipientInput}`, amount: amount, type: "out", date: serverTimestamp() });
+                    transaction.set(doc(collection(db, `users/${currentUser.uid}/transactions`)), { title: `Перевод: ${document.getElementById('pay-to').value}`, amount, type: "out", date: serverTimestamp() });
                 }
             });
             toast("Перевод выполнен!");
-            document.getElementById('pay-amount').value = '';
         });
 
         window.setCardColor = (c) => {
@@ -469,6 +464,7 @@
              navTab('screen-home', document.querySelector('.nav-item'));
         });
 
+        // --- СТАБИЛЬНЫЙ AI ---
         window.handleChat = (btn) => protectBtn(btn, async () => {
             const input = document.getElementById('chat-input');
             const text = input.value;
@@ -480,23 +476,25 @@
             chatBox.scrollTop = chatBox.scrollHeight;
 
             const balanceContext = userCards.map(c => `Карта *${c.number.slice(-4)}: ${c.balance} руб`).join(', ');
-            const systemPrompt = `Ты помощник банка BiBank. Твой тон: вежливый, краткий. Данные пользователя: ${balanceContext}. Если вопрос не про банк, финансы или приложение, ответь: "Я могу помочь только с вопросами по BiBank". Не пиши длинно.`;
+            const systemPrompt = `Ты помощник банка BiBank. Твой тон: вежливый, краткий. 
+            Данные пользователя: ${balanceContext}.
+            Если вопрос не про банк, финансы или приложение, ответь: "Я могу помочь только с вопросами по BiBank".
+            Не пиши длинно. Отвечай на русском языке.`;
 
             try {
-                // Прямой вызов generateContent для большей стабильности в веб-среде
-                const result = await model.generateContent(systemPrompt + "\n\nКлиент: " + text);
+                // Самый надежный прямой метод генерации
+                const result = await model.generateContent([systemPrompt, text]);
                 const response = await result.response;
                 const reply = response.text();
                 
                 chatBox.innerHTML += `<div class="msg ai">${reply}</div>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
             } catch(e) {
-                console.error("Gemini Error:", e);
+                console.error("AI Error:", e);
                 let errorMsg = "Ошибка связи с ИИ.";
-                if (e.message.includes("403")) errorMsg += " (Доступ запрещен. Нужен VPN?)";
-                if (e.message.includes("fetch")) errorMsg += " (Сетевая ошибка)";
-                chatBox.innerHTML += `<div class="msg ai" style="color:var(--danger)">${errorMsg} <br><small>${e.message}</small></div>`;
+                if (e.message.includes("fetch")) errorMsg += " (Проверьте интернет или VPN)";
+                chatBox.innerHTML += `<div class="msg ai" style="color:var(--danger)">${errorMsg}</div>`;
             }
+            chatBox.scrollTop = chatBox.scrollHeight;
         });
     </script>
 </body>
