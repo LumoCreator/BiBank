@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BiBank</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #FF6B00; /* BiBank Orange */
+            --bg: #0D0D0D;
+            --surface: #1C1C1E;
+            --text: #FFFFFF;
+            --text-sec: #8E8E93;
+            --danger: #FF453A;
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; overflow: hidden; height: 100vh; }
+
+        /* --- Утилиты --- */
+        .hidden { display: none !important; }
+        .flex-center { display: flex; justify-content: center; align-items: center; }
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 20px; overflow-y: auto; padding-bottom: 90px; background: var(--bg); transition: opacity 0.3s; }
+        
+        /* --- Типографика --- */
+        h1 { font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+        h2 { font-size: 20px; font-weight: 600; margin-bottom: 15px; }
+        p { color: var(--text-sec); font-size: 14px; margin-top: 0; }
+
+        /* --- Формы --- */
+        .input-group { margin-bottom: 15px; width: 100%; }
+        input, select {
+            width: 100%; background: var(--surface); border: 1px solid transparent;
+            padding: 16px; border-radius: 12px; color: var(--text); font-size: 16px; outline: none; transition: 0.2s;
+        }
+        input:focus { border-color: var(--primary); }
+        
+        /* --- Кнопки --- */
+        .btn {
+            width: 100%; padding: 16px; border-radius: 12px; border: none;
+            background: var(--primary); color: white; font-weight: 600; font-size: 16px;
+            cursor: pointer; position: relative; overflow: hidden; transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.98); opacity: 0.8; }
+        .btn.loading { color: transparent; pointer-events: none; }
+        .btn.loading::after {
+            content: ""; position: absolute; top: 50%; left: 50%; width: 20px; height: 20px;
+            border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin-top: -10px; margin-left: -10px;
+        }
+        .link-btn { background: none; color: var(--primary); font-size: 14px; margin-top: 10px; cursor: pointer; }
+
+        /* --- Карта (BiBank Card) --- */
+        .bank-card {
+            background: linear-gradient(135deg, #FF6B00 0%, #FF8F40 100%);
+            border-radius: 20px; padding: 25px; height: 200px; position: relative;
+            color: white; box-shadow: 0 10px 30px rgba(255, 107, 0, 0.2); margin-bottom: 25px; transition: transform 0.3s;
+        }
+        .bank-card:active { transform: scale(0.98); }
+        .card-top { display: flex; justify-content: space-between; align-items: start; }
+        .card-logo { font-weight: 800; font-size: 18px; letter-spacing: 1px; }
+        .card-pay { font-weight: 800; font-style: italic; opacity: 0.8; }
+        .card-bal { font-size: 32px; font-weight: 700; margin-top: 30px; }
+        .card-bottom { display: flex; justify-content: space-between; position: absolute; bottom: 25px; left: 25px; right: 25px; font-family: monospace; font-size: 16px; }
+
+        /* --- Список транзакций --- */
+        .tx-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #2C2C2E; }
+        .tx-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--surface); display: flex; align-items: center; justify-content: center; margin-right: 15px; color: var(--primary); }
+        .tx-info { flex: 1; }
+        .tx-title { font-weight: 600; display: block; }
+        .tx-date { font-size: 12px; color: var(--text-sec); }
+        .tx-amount { font-weight: 600; }
+        .tx-amount.plus { color: #32D74B; }
+
+        /* --- Навигация --- */
+        .nav-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 80px;
+            background: rgba(28, 28, 30, 0.95); backdrop-filter: blur(10px);
+            display: flex; justify-content: space-around; align-items: center;
+            border-top: 1px solid #2C2C2E; z-index: 100; padding-bottom: 10px;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-sec); font-size: 10px; cursor: pointer; transition: 0.2s; }
+        .nav-item i { font-size: 20px; margin-bottom: 5px; }
+        .nav-item.active { color: var(--primary); }
+
+        /* --- Чат AI --- */
+        #chat-messages { height: calc(100vh - 220px); overflow-y: auto; margin-bottom: 15px; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 16px; margin-bottom: 10px; font-size: 14px; line-height: 1.4; }
+        .msg.user { background: var(--primary); color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 4px; }
+        .msg.ai { background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Toast Notification */
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: var(--surface); padding: 12px 24px; border-radius: 30px;
+            border: 1px solid var(--primary); opacity: 0; pointer-events: none; transition: 0.3s; z-index: 1000;
+            display: flex; align-items: center; gap: 10px; font-size: 14px;
+        }
+        #toast.show { opacity: 1; top: 40px; }
+    </style>
+</head>
+<body>
+
+    <div id="toast"><i class="fa-solid fa-check-circle" style="color:var(--primary)"></i> <span id="toast-msg">Success</span></div>
+
+    <div id="screen-login" class="screen flex-center" style="flex-direction: column; z-index: 50;">
+        <h1 style="color: var(--primary); font-size: 40px;">BiBank</h1>
+        <p>Финансы нового поколения</p>
+        <div style="height: 40px;"></div>
+        <div class="input-group"><input type="email" id="login-email" placeholder="Email"></div>
+        <div class="input-group"><input type="password" id="login-pass" placeholder="Пароль"></div>
+        <button class="btn" onclick="handleLogin(this)">Войти</button>
+        <div style="display: flex; justify-content: space-between; width: 100%; margin-top: 20px;">
+            <button class="link-btn" onclick="nav('screen-register')">Стать клиентом</button>
+            <button class="link-btn">Забыли пароль?</button>
+        </div>
+    </div>
+
+    <div id="screen-register" class="screen hidden flex-center" style="flex-direction: column; z-index: 50;">
+        <h2>Регистрация</h2>
+        <div class="input-group"><input type="text" id="reg-name" placeholder="Имя"></div>
+        <div class="input-group"><input type="text" id="reg-surname" placeholder="Фамилия"></div>
+        <div class="input-group"><input type="email" id="reg-email" placeholder="Email"></div>
+        <div class="input-group"><input type="password" id="reg-pass" placeholder="Пароль"></div>
+        <button class="btn" onclick="handleRegister(this)">Создать аккаунт</button>
+        <button class="link-btn" onclick="nav('screen-login')">Уже есть аккаунт</button>
+    </div>
+
+    <div id="screen-pin" class="screen hidden flex-center" style="flex-direction: column; z-index: 50;">
+        <h2>Код доступа</h2>
+        <p>Придумайте код для этой сессии</p>
+        <div class="input-group"><input type="tel" id="pin-input" placeholder="XXXX" maxlength="4" style="text-align: center; letter-spacing: 10px; font-size: 24px;"></div>
+        <button class="btn" onclick="handlePinSet(this)">Войти в банк</button>
+    </div>
+
+    <div id="main-app-container" class="hidden">
+        
+        <div id="screen-home" class="screen">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h1>Мои карты</h1>
+                <div onclick="logout()" style="color:var(--danger); cursor:pointer;"><i class="fa-solid fa-right-from-bracket"></i></div>
+            </div>
+            
+            <div id="card-container">
+                </div>
+
+            <h2>История</h2>
+            <div id="tx-history">
+                <div style="text-align:center; padding: 20px; color: var(--text-sec);">Загрузка...</div>
+            </div>
+        </div>
+
+        <div id="screen-pay" class="screen hidden">
+            <h1>Платежи</h1>
+            
+            <div style="background: var(--surface); padding: 5px; border-radius: 12px; display: flex; margin-bottom: 20px;">
+                <button class="btn" style="flex:1; background: transparent; color: var(--text-sec);" id="tab-p2p" onclick="switchPayTab('p2p')">Клиенту</button>
+                <button class="btn" style="flex:1; background: var(--surface); color: var(--text);" id="tab-me" onclick="switchPayTab('me')">Между своими</button>
+            </div>
+
+            <div id="pay-form">
+                <p>Откуда списать:</p>
+                <div class="input-group">
+                    <select id="pay-from-card"></select>
+                </div>
+                
+                <div id="p2p-fields">
+                    <p>Получатель (Почта или номер карты):</p>
+                    <div class="input-group">
+                        <input type="text" id="pay-to" placeholder="user@mail.com или 0000..." onblur="detectUser()">
+                    </div>
+                    <p id="pay-recipient-name" style="color: var(--primary); font-weight: 600; display:none;"></p>
+                </div>
+
+                <div id="me-fields" class="hidden">
+                    <p>Куда зачислить:</p>
+                    <div class="input-group">
+                        <select id="pay-to-card"></select>
+                    </div>
+                </div>
+
+                <p>Сумма:</p>
+                <div class="input-group"><input type="number" id="pay-amount" placeholder="0.00"></div>
+
+                <button class="btn" onclick="handleTransfer(this)">Перевести</button>
+            </div>
+        </div>
+
+        <div id="screen-chat" class="screen hidden">
+            <h1>AI Помощник</h1>
+            <p>Gemini • Только вопросы по банку</p>
+            <div id="chat-messages"></div>
+            <div style="position: fixed; bottom: 90px; left: 20px; right: 20px; display: flex; gap: 10px;">
+                <input type="text" id="chat-input" placeholder="Спроси о балансе или услугах...">
+                <button class="btn" style="width: 50px;" onclick="handleChat(this)"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <div id="screen-issue" class="screen hidden">
+            <h1>Новая карта</h1>
+            <p>Выберите дизайн</p>
+            
+            <div class="bank-card" id="preview-card" style="height: 160px; margin-bottom: 20px;">
+                <div class="card-top">
+                    <span class="card-logo">BiBank</span>
+                </div>
+                <div class="card-bal">0 ₽</div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 30px;">
+                <div onclick="setCardColor('#FF6B00')" style="width:40px; height:40px; border-radius:50%; background:#FF6B00; border: 2px solid white;"></div>
+                <div onclick="setCardColor('#007AFF')" style="width:40px; height:40px; border-radius:50%; background:#007AFF;"></div>
+                <div onclick="setCardColor('#32D74B')" style="width:40px; height:40px; border-radius:50%; background:#32D74B;"></div>
+                <div onclick="setCardColor('#BF5AF2')" style="width:40px; height:40px; border-radius:50%; background:#BF5AF2;"></div>
+            </div>
+
+            <button class="btn" onclick="handleIssueCard(this)">Выпустить карту</button>
+        </div>
+
+        <div class="nav-bar">
+            <div class="nav-item active" onclick="navTab('screen-home', this)"><i class="fa-solid fa-wallet"></i>Главная</div>
+            <div class="nav-item" onclick="navTab('screen-pay', this)"><i class="fa-solid fa-money-bill-transfer"></i>Платежи</div>
+            <div class="nav-item" onclick="navTab('screen-chat', this)"><i class="fa-solid fa-robot"></i>AI Чат</div>
+            <div class="nav-item" onclick="navTab('screen-issue', this)"><i class="fa-solid fa-plus-circle"></i>Выпуск</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, increment, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // --- КОНФИГУРАЦИЯ ---
+        // КЛЮЧИ ИЗ ЗАПРОСА
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1f33BCIiSV6JL9HMquLmTgy74NJz8HJ8",
+            authDomain: "bibankk.firebaseapp.com",
+            projectId: "bibankk",
+            storageBucket: "bibankk.firebasestorage.app",
+            messagingSenderId: "150022541822",
+            appId: "1:150022541822:web:7f314ae78fad29477eb0af",
+            measurementId: "G-YRQ601TWLZ"
+        };
+        
+        const GEMINI_API_KEY = "AIzaSyBynE06gMxbjaOJWgDH_oQYVTghJH0jSFc";
+        
+        // Инициализация
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app); // Добавлена аналитика как в твоем коде
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUser = null;
+        let userCards = [];
+        let selectedColor = '#FF6B00';
+
+        // --- UI ЛОГИКА ---
+        window.nav = (screenId) => {
+            document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+        };
+
+        window.navTab = (screenId, el) => {
+            document.querySelectorAll('#main-app-container .screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            if(screenId === 'screen-pay') loadCardsForPay();
+        };
+
+        window.toast = (msg) => {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        };
+
+        async function protectBtn(btn, action) {
+            if(btn.classList.contains('loading')) return;
+            btn.classList.add('loading');
+            try { await action(); } 
+            catch(e) { console.error(e); toast('Ошибка: ' + e.message); } 
+            finally { btn.classList.remove('loading'); }
+        }
+
+        // --- AUTH & SETUP ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                // Проверяем PIN в сессии
+                if(sessionStorage.getItem('bibank_pin')) {
+                    initApp();
+                } else {
+                    nav('screen-pin');
+                }
+            } else {
+                nav('screen-login');
+                document.getElementById('main-app-container').classList.add('hidden');
+            }
+        });
+
+        window.handleLogin = (btn) => protectBtn(btn, async () => {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-pass').value;
+            await signInWithEmailAndPassword(auth, email, pass);
+        });
+
+        window.handleRegister = (btn) => protectBtn(btn, async () => {
+            const name = document.getElementById('reg-name').value;
+            const surname = document.getElementById('reg-surname').value;
+            const email = document.getElementById('reg-email').value;
+            const pass = document.getElementById('reg-pass').value;
+
+            if(!name || !email || !pass) throw new Error("Заполните все поля");
+
+            const cred = await createUserWithEmailAndPassword(auth, email, pass);
+            const uid = cred.user.uid;
+
+            // 1. Создаем профиль пользователя
+            await setDoc(doc(db, "users", uid), {
+                name, surname, email, 
+                createdAt: serverTimestamp()
+            });
+
+            // 2. Создаем первую карту
+            await createCardForUser(uid, 10000, '#FF6B00');
+            toast("Аккаунт создан!");
+        });
+
+        window.handlePinSet = (btn) => protectBtn(btn, async () => {
+            const pin = document.getElementById('pin-input').value;
+            if(pin.length !== 4) throw new Error("PIN должен быть 4 цифры");
+            sessionStorage.setItem('bibank_pin', pin);
+            initApp();
+        });
+
+        window.logout = () => {
+            sessionStorage.removeItem('bibank_pin');
+            signOut(auth);
+        };
+
+        // --- ОСНОВНАЯ ЛОГИКА ---
+        function initApp() {
+            document.getElementById('screen-login').classList.add('hidden');
+            document.getElementById('screen-register').classList.add('hidden');
+            document.getElementById('screen-pin').classList.add('hidden');
+            document.getElementById('main-app-container').classList.remove('hidden');
+            navTab('screen-home', document.querySelector('.nav-item'));
+
+            // Слушаем карты
+            const q = query(collection(db, `users/${currentUser.uid}/cards`));
+            onSnapshot(q, (snapshot) => {
+                userCards = [];
+                const container = document.getElementById('card-container');
+                container.innerHTML = '';
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    userCards.push({id: doc.id, ...data});
+                    container.innerHTML += renderCard(data);
+                });
+            });
+
+            // Слушаем транзакции (последние 10)
+            const txQ = query(
+                collection(db, `users/${currentUser.uid}/transactions`), 
+                orderBy('date', 'desc')
+            );
+            onSnapshot(txQ, (snapshot) => {
+                const txList = document.getElementById('tx-history');
+                txList.innerHTML = '';
+                if(snapshot.empty) txList.innerHTML = '<p style="text-align:center; padding:20px;">Пока нет операций</p>';
+                
+                snapshot.forEach(doc => {
+                    const t = doc.data();
+                    const isPlus = t.type === 'in';
+                    txList.innerHTML += `
+                    <div class="tx-item">
+                        <div class="tx-icon">
+                            <i class="fa-solid ${isPlus ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                        </div>
+                        <div class="tx-info">
+                            <span class="tx-title">${t.title}</span>
+                            <span class="tx-date">${t.date?.toDate ? t.date.toDate().toLocaleDateString() : 'Сейчас'}</span>
+                        </div>
+                        <div class="tx-amount ${isPlus ? 'plus' : ''}">${isPlus ? '+' : '-'}${t.amount} ₽</div>
+                    </div>`;
+                });
+            });
+        }
+
+        // Генерация карты
+        async function createCardForUser(uid, initialBalance, color) {
+            const cardNum = generateLuhnCard();
+            const cvv = Math.floor(100 + Math.random() * 900);
+            const exp = "12/30"; // Хардкод для игрушки
+            
+            await addDoc(collection(db, `users/${uid}/cards`), {
+                number: cardNum,
+                cvv: cvv,
+                exp: exp,
+                balance: initialBalance,
+                color: color,
+                holder: uid // Индекс владельца
+            });
+        }
+
+        function generateLuhnCard() {
+            let prefix = "4276"; // BiBank BIN
+            for(let i=0; i<8; i++) prefix += Math.floor(Math.random()*10);
+            return prefix + Math.floor(1000 + Math.random() * 9000); 
+        }
+
+        function renderCard(data) {
+            const last4 = data.number.slice(-4);
+            return `
+            <div class="bank-card" style="background: linear-gradient(135deg, ${data.color} 0%, #000 150%);">
+                <div class="card-top">
+                    <span class="card-logo">BiBank</span>
+                    <span class="card-pay">BiPAY</span>
+                </div>
+                <div class="card-bal">${data.balance.toLocaleString()} ₽</div>
+                <div class="card-bottom">
+                    <span>**** ${last4}</span>
+                    <span>${data.exp}</span>
+                </div>
+            </div>`;
+        }
+
+        // --- ПЛАТЕЖИ ---
+        window.switchPayTab = (type) => {
+            const p2p = document.getElementById('p2p-fields');
+            const me = document.getElementById('me-fields');
+            const btnP2p = document.getElementById('tab-p2p');
+            const btnMe = document.getElementById('tab-me');
+            
+            if(type === 'p2p') {
+                p2p.classList.remove('hidden');
+                me.classList.add('hidden');
+                btnP2p.style.color = 'var(--text)';
+                btnMe.style.color = 'var(--text-sec)';
+            } else {
+                p2p.classList.add('hidden');
+                me.classList.remove('hidden');
+                btnP2p.style.color = 'var(--text-sec)';
+                btnMe.style.color = 'var(--text)';
+            }
+        };
+
+        function loadCardsForPay() {
+            const from = document.getElementById('pay-from-card');
+            const to = document.getElementById('pay-to-card');
+            from.innerHTML = ''; to.innerHTML = '';
+            
+            userCards.forEach(c => {
+                const opt = `<option value="${c.id}">*${c.number.slice(-4)} (${c.balance} ₽)</option>`;
+                from.innerHTML += opt;
+                to.innerHTML += opt;
+            });
+        }
+
+        window.detectUser = async () => {
+            const val = document.getElementById('pay-to').value;
+            const label = document.getElementById('pay-recipient-name');
+            label.style.display = 'none';
+            if(val.length < 5) return;
+
+            // Поиск по email
+            if(val.includes('@')) {
+                const q = query(collection(db, "users"), where("email", "==", val));
+                const snap = await getDocs(q);
+                if(!snap.empty) {
+                    const u = snap.docs[0].data();
+                    label.innerText = `Получатель: ${u.name} ${u.surname}`;
+                    label.style.display = 'block';
+                }
+            } else {
+                label.innerText = "Поиск карты...";
+                label.style.display = 'block';
+                setTimeout(() => label.innerText = "Держатель карты BiBank", 500);
+            }
+        };
+
+        window.handleTransfer = (btn) => protectBtn(btn, async () => {
+            const amount = parseFloat(document.getElementById('pay-amount').value);
+            const fromId = document.getElementById('pay-from-card').value;
+            const isMe = !document.getElementById('me-fields').classList.contains('hidden');
+            
+            if(!amount || amount <= 0) throw new Error("Неверная сумма");
+            
+            const fromCard = userCards.find(c => c.id === fromId);
+            if(fromCard.balance < amount) throw new Error("Недостаточно средств");
+
+            // Транзакция
+            await runTransaction(db, async (transaction) => {
+                const fromRef = doc(db, `users/${currentUser.uid}/cards/${fromId}`);
+                
+                if(isMe) {
+                    const toId = document.getElementById('pay-to-card').value;
+                    if(fromId === toId) throw new Error("Карты должны быть разными");
+                    const toRef = doc(db, `users/${currentUser.uid}/cards/${toId}`);
+                    
+                    transaction.update(fromRef, { balance: increment(-amount) });
+                    transaction.update(toRef, { balance: increment(amount) });
+                    
+                    // Запись в историю
+                    const txRef = doc(collection(db, `users/${currentUser.uid}/transactions`));
+                    transaction.set(txRef, { title: "Перевод между своими", amount: amount, type: "out", date: serverTimestamp() });
+
+                } else {
+                    const recipientInput = document.getElementById('pay-to').value;
+                    transaction.update(fromRef, { balance: increment(-amount) });
+                    
+                    const txRef = doc(collection(db, `users/${currentUser.uid}/transactions`));
+                    transaction.set(txRef, { title: `Перевод: ${recipientInput}`, amount: amount, type: "out", date: serverTimestamp() });
+                }
+            });
+
+            toast("Перевод выполнен!");
+            document.getElementById('pay-amount').value = '';
+        });
+
+        // --- ВЫПУСК ---
+        window.setCardColor = (c) => {
+            selectedColor = c;
+            document.getElementById('preview-card').style.background = `linear-gradient(135deg, ${c} 0%, #000 150%)`;
+        };
+
+        window.handleIssueCard = (btn) => protectBtn(btn, async () => {
+             await createCardForUser(currentUser.uid, 0, selectedColor);
+             toast("Карта выпущена!");
+             navTab('screen-home', document.querySelector('.nav-item'));
+        });
+
+        // --- GEMINI AI ---
+        window.handleChat = (btn) => protectBtn(btn, async () => {
+            const input = document.getElementById('chat-input');
+            const text = input.value;
+            if(!text) return;
+            
+            const chatBox = document.getElementById('chat-messages');
+            chatBox.innerHTML += `<div class="msg user">${text}</div>`;
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // Контекст для ИИ
+            const balanceContext = userCards.map(c => `Карта *${c.number.slice(-4)}: ${c.balance} руб`).join(', ');
+            
+            const systemPrompt = `Ты помощник банка BiBank. Твой тон: вежливый, краткий. 
+            Данные пользователя: ${balanceContext}.
+            Если вопрос не про банк, финансы или приложение, ответь: "Я могу помочь только с вопросами по BiBank".
+            Не пиши длинно.`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{text: systemPrompt + "\nВопрос пользователя: " + text}]
+                        }]
+                    })
+                });
+                
+                const data = await response.json();
+                const reply = data.candidates[0].content.parts[0].text;
+                
+                chatBox.innerHTML += `<div class="msg ai">${reply}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch(e) {
+                console.error(e);
+                chatBox.innerHTML += `<div class="msg ai">Ошибка связи с ИИ.</div>`;
+            }
+        });
+
+    </script>
+</body>
+</html>
