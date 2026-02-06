@@ -56,8 +56,7 @@
 
         /* --- Карта (BiBank Card) --- */
         .bank-card {
-            background: linear-gradient(135deg, #FF6B00 0%, #FF8F40 100%);
-            border-radius: 20px; padding: 25px; height: 200px; position: relative;
+            background: linear-gradient(135deg, #FF6B00 0%, #FF8F40 100%); border-radius: 20px; padding: 25px; height: 200px; position: relative;
             color: white; box-shadow: 0 10px 30px rgba(255, 107, 0, 0.2); margin-bottom: 25px; transition: transform 0.3s;
         }
         .bank-card:active { transform: scale(0.98); }
@@ -147,8 +146,7 @@
                 <div onclick="logout()" style="color:var(--danger); cursor:pointer;"><i class="fa-solid fa-right-from-bracket"></i></div>
             </div>
             
-            <div id="card-container">
-                </div>
+            <div id="card-container"></div>
 
             <h2>История</h2>
             <div id="tx-history">
@@ -231,14 +229,12 @@
         </div>
     </div>
 
-        <script type="module">
+    <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, increment, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        // Импортируем официальный SDK для Gemini
         import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-        // --- КОНФИГУРАЦИЯ ---
         const firebaseConfig = {
             apiKey: "AIzaSyC1f33BCIiSV6JL9HMquLmTgy74NJz8HJ8",
             authDomain: "bibankk.firebaseapp.com",
@@ -250,21 +246,22 @@
         };
         
         const GEMINI_API_KEY = "AIzaSyADzqXLgXAJTdvnKJh3STswUViEuAgL0fQ";
-        
-        // Инициализация
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Инициализация Gemini через SDK
+        // Исправленная инициализация: добавлен параметр apiVersion для предотвращения 404
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            apiVersion: "v1" 
+        });
         
         let currentUser = null;
         let userCards = [];
         let selectedColor = '#FF6B00';
 
-        // --- UI ЛОГИКА ---
         window.nav = (screenId) => {
             document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
@@ -293,7 +290,6 @@
             finally { btn.classList.remove('loading'); }
         }
 
-        // --- AUTH & SETUP ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -319,17 +315,10 @@
             const surname = document.getElementById('reg-surname').value;
             const email = document.getElementById('reg-email').value;
             const pass = document.getElementById('reg-pass').value;
-
             if(!name || !email || !pass) throw new Error("Заполните все поля");
-
             const cred = await createUserWithEmailAndPassword(auth, email, pass);
             const uid = cred.user.uid;
-
-            await setDoc(doc(db, "users", uid), {
-                name, surname, email, 
-                createdAt: serverTimestamp()
-            });
-
+            await setDoc(doc(db, "users", uid), { name, surname, email, createdAt: serverTimestamp() });
             await createCardForUser(uid, 10000, '#FF6B00');
             toast("Аккаунт создан!");
         });
@@ -346,7 +335,6 @@
             signOut(auth);
         };
 
-        // --- ОСНОВНАЯ ЛОГИКА ---
         function initApp() {
             document.getElementById('screen-login').classList.add('hidden');
             document.getElementById('screen-register').classList.add('hidden');
@@ -359,7 +347,6 @@
                 userCards = [];
                 const container = document.getElementById('card-container');
                 container.innerHTML = '';
-                
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     userCards.push({id: doc.id, ...data});
@@ -367,29 +354,15 @@
                 });
             });
 
-            const txQ = query(
-                collection(db, `users/${currentUser.uid}/transactions`), 
-                orderBy('date', 'desc')
-            );
+            const txQ = query(collection(db, `users/${currentUser.uid}/transactions`), orderBy('date', 'desc'));
             onSnapshot(txQ, (snapshot) => {
                 const txList = document.getElementById('tx-history');
                 txList.innerHTML = '';
                 if(snapshot.empty) txList.innerHTML = '<p style="text-align:center; padding:20px;">Пока нет операций</p>';
-                
                 snapshot.forEach(doc => {
                     const t = doc.data();
                     const isPlus = t.type === 'in';
-                    txList.innerHTML += `
-                    <div class="tx-item">
-                        <div class="tx-icon">
-                            <i class="fa-solid ${isPlus ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
-                        </div>
-                        <div class="tx-info">
-                            <span class="tx-title">${t.title}</span>
-                            <span class="tx-date">${t.date?.toDate ? t.date.toDate().toLocaleDateString() : 'Сейчас'}</span>
-                        </div>
-                        <div class="tx-amount ${isPlus ? 'plus' : ''}">${isPlus ? '+' : '-'}${t.amount} ₽</div>
-                    </div>`;
+                    txList.innerHTML += `<div class="tx-item"><div class="tx-icon"><i class="fa-solid ${isPlus ? 'fa-arrow-down' : 'fa-arrow-up'}"></i></div><div class="tx-info"><span class="tx-title">${t.title}</span><span class="tx-date">${t.date?.toDate ? t.date.toDate().toLocaleDateString() : 'Сейчас'}</span></div><div class="tx-amount ${isPlus ? 'plus' : ''}">${isPlus ? '+' : '-'}${t.amount} ₽</div></div>`;
                 });
             });
         }
@@ -398,15 +371,7 @@
             const cardNum = generateLuhnCard();
             const cvv = Math.floor(100 + Math.random() * 900);
             const exp = "12/30";
-            
-            await addDoc(collection(db, `users/${uid}/cards`), {
-                number: cardNum,
-                cvv: cvv,
-                exp: exp,
-                balance: initialBalance,
-                color: color,
-                holder: uid
-            });
+            await addDoc(collection(db, `users/${uid}/cards`), { number: cardNum, cvv: cvv, exp: exp, balance: initialBalance, color: color, holder: uid });
         }
 
         function generateLuhnCard() {
@@ -417,18 +382,7 @@
 
         function renderCard(data) {
             const last4 = data.number.slice(-4);
-            return `
-            <div class="bank-card" style="background: linear-gradient(135deg, ${data.color} 0%, #000 150%);">
-                <div class="card-top">
-                    <span class="card-logo">BiBank</span>
-                    <span class="card-pay">BiPAY</span>
-                </div>
-                <div class="card-bal">${data.balance.toLocaleString()} ₽</div>
-                <div class="card-bottom">
-                    <span>**** ${last4}</span>
-                    <span>${data.exp}</span>
-                </div>
-            </div>`;
+            return `<div class="bank-card" style="background: linear-gradient(135deg, ${data.color} 0%, #000 150%);"><div class="card-top"><span class="card-logo">BiBank</span><span class="card-pay">BiPAY</span></div><div class="card-bal">${data.balance.toLocaleString()} ₽</div><div class="card-bottom"><span>**** ${last4}</span><span>${data.exp}</span></div></div>`;
         }
 
         window.switchPayTab = (type) => {
@@ -436,17 +390,12 @@
             const me = document.getElementById('me-fields');
             const btnP2p = document.getElementById('tab-p2p');
             const btnMe = document.getElementById('tab-me');
-            
             if(type === 'p2p') {
-                p2p.classList.remove('hidden');
-                me.classList.add('hidden');
-                btnP2p.style.color = 'var(--text)';
-                btnMe.style.color = 'var(--text-sec)';
+                p2p.classList.remove('hidden'); me.classList.add('hidden');
+                btnP2p.style.color = 'var(--text)'; btnMe.style.color = 'var(--text-sec)';
             } else {
-                p2p.classList.add('hidden');
-                me.classList.remove('hidden');
-                btnP2p.style.color = 'var(--text-sec)';
-                btnMe.style.color = 'var(--text)';
+                p2p.classList.add('hidden'); me.classList.remove('hidden');
+                btnP2p.style.color = 'var(--text-sec)'; btnMe.style.color = 'var(--text)';
             }
         };
 
@@ -454,11 +403,9 @@
             const from = document.getElementById('pay-from-card');
             const to = document.getElementById('pay-to-card');
             from.innerHTML = ''; to.innerHTML = '';
-            
             userCards.forEach(c => {
                 const opt = `<option value="${c.id}">*${c.number.slice(-4)} (${c.balance} ₽)</option>`;
-                from.innerHTML += opt;
-                to.innerHTML += opt;
+                from.innerHTML += opt; to.innerHTML += opt;
             });
         }
 
@@ -467,7 +414,6 @@
             const label = document.getElementById('pay-recipient-name');
             label.style.display = 'none';
             if(val.length < 5) return;
-
             if(val.includes('@')) {
                 const q = query(collection(db, "users"), where("email", "==", val));
                 const snap = await getDocs(q);
@@ -487,35 +433,27 @@
             const amount = parseFloat(document.getElementById('pay-amount').value);
             const fromId = document.getElementById('pay-from-card').value;
             const isMe = !document.getElementById('me-fields').classList.contains('hidden');
-            
             if(!amount || amount <= 0) throw new Error("Неверная сумма");
-            
             const fromCard = userCards.find(c => c.id === fromId);
             if(fromCard.balance < amount) throw new Error("Недостаточно средств");
 
             await runTransaction(db, async (transaction) => {
                 const fromRef = doc(db, `users/${currentUser.uid}/cards/${fromId}`);
-                
                 if(isMe) {
                     const toId = document.getElementById('pay-to-card').value;
                     if(fromId === toId) throw new Error("Карты должны быть разными");
                     const toRef = doc(db, `users/${currentUser.uid}/cards/${toId}`);
-                    
                     transaction.update(fromRef, { balance: increment(-amount) });
                     transaction.update(toRef, { balance: increment(amount) });
-                    
                     const txRef = doc(collection(db, `users/${currentUser.uid}/transactions`));
                     transaction.set(txRef, { title: "Перевод между своими", amount: amount, type: "out", date: serverTimestamp() });
-
                 } else {
                     const recipientInput = document.getElementById('pay-to').value;
                     transaction.update(fromRef, { balance: increment(-amount) });
-                    
                     const txRef = doc(collection(db, `users/${currentUser.uid}/transactions`));
                     transaction.set(txRef, { title: `Перевод: ${recipientInput}`, amount: amount, type: "out", date: serverTimestamp() });
                 }
             });
-
             toast("Перевод выполнен!");
             document.getElementById('pay-amount').value = '';
         });
@@ -543,22 +481,11 @@
             chatBox.scrollTop = chatBox.scrollHeight;
 
             const balanceContext = userCards.map(c => `Карта *${c.number.slice(-4)}: ${c.balance} руб`).join(', ');
-            
-            const systemPrompt = `Ты помощник банка BiBank. Твой тон: вежливый, краткий. 
-            Данные пользователя: ${balanceContext}.
-            Если вопрос не про банк, финансы или приложение, ответь: "Я могу помочь только с вопросами по BiBank".
-            Не пиши длинно.`;
+            const systemPrompt = `Ты помощник банка BiBank. Твой тон: вежливый, краткий. Данные пользователя: ${balanceContext}. Если вопрос не про банк, финансы или приложение, ответь: "Я могу помочь только с вопросами по BiBank". Не пиши длинно.`;
 
             try {
-                // ИСПОЛЬЗУЕМ SDK
-                const chat = model.startChat({
-                    history: [
-                        { role: "user", parts: [{ text: systemPrompt }] },
-                        { role: "model", parts: [{ text: "Понял, я готов помогать клиенту BiBank." }] },
-                    ],
-                });
-
-                const result = await chat.sendMessage(text);
+                // Прямой вызов generateContent для большей стабильности
+                const result = await model.generateContent(systemPrompt + "\n\nВопрос пользователя: " + text);
                 const response = await result.response;
                 const reply = response.text();
                 
@@ -566,10 +493,10 @@
                 chatBox.scrollTop = chatBox.scrollHeight;
             } catch(e) {
                 console.error("Gemini Error:", e);
-                // Выводим ошибку на экран, чтобы понять причину
                 let errorMsg = "Ошибка связи с ИИ.";
-                if (e.message.includes("403")) errorMsg += " (Доступ запрещен. Нужен VPN?)";
-                if (e.message.includes("fetch")) errorMsg += " (Сетевая ошибка)";
+                if (e.message.includes("404")) errorMsg = "Ошибка: Модель не найдена (404).";
+                else if (e.message.includes("403")) errorMsg += " (Доступ запрещен. Нужен VPN?)";
+                else if (e.message.includes("fetch")) errorMsg += " (Сетевая ошибка)";
                 
                 chatBox.innerHTML += `<div class="msg ai" style="color:var(--danger)">${errorMsg} <br><small>${e.message}</small></div>`;
             }
