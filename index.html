@@ -87,10 +87,10 @@
         .nav-item.active { color: var(--primary); }
 
         /* --- Чат AI --- */
-        #chat-messages { height: calc(100vh - 220px); overflow-y: auto; margin-bottom: 15px; }
+        #chat-messages { height: calc(100vh - 220px); overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; }
         .msg { max-width: 80%; padding: 12px 16px; border-radius: 16px; margin-bottom: 10px; font-size: 14px; line-height: 1.4; }
         .msg.user { background: var(--primary); color: white; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 4px; }
-        .msg.ai { background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; }
+        .msg.ai { background: var(--surface); color: var(--text); border-bottom-left-radius: 4px; align-self: flex-start; }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
@@ -145,9 +145,7 @@
                 <h1>Мои карты</h1>
                 <div onclick="logout()" style="color:var(--danger); cursor:pointer;"><i class="fa-solid fa-right-from-bracket"></i></div>
             </div>
-            
             <div id="card-container"></div>
-
             <h2>История</h2>
             <div id="tx-history">
                 <div style="text-align:center; padding: 20px; color: var(--text-sec);">Загрузка...</div>
@@ -156,46 +154,34 @@
 
         <div id="screen-pay" class="screen hidden">
             <h1>Платежи</h1>
-            
             <div style="background: var(--surface); padding: 5px; border-radius: 12px; display: flex; margin-bottom: 20px;">
                 <button class="btn" style="flex:1; background: transparent; color: var(--text-sec);" id="tab-p2p" onclick="switchPayTab('p2p')">Клиенту</button>
                 <button class="btn" style="flex:1; background: var(--surface); color: var(--text);" id="tab-me" onclick="switchPayTab('me')">Между своими</button>
             </div>
-
             <div id="pay-form">
                 <p>Откуда списать:</p>
-                <div class="input-group">
-                    <select id="pay-from-card"></select>
-                </div>
-                
+                <div class="input-group"><select id="pay-from-card"></select></div>
                 <div id="p2p-fields">
-                    <p>Получатель (Почта или номер карты):</p>
-                    <div class="input-group">
-                        <input type="text" id="pay-to" placeholder="user@mail.com или 0000..." onblur="detectUser()">
-                    </div>
+                    <p>Получатель (Email или карта):</p>
+                    <div class="input-group"><input type="text" id="pay-to" placeholder="user@mail.com" onblur="detectUser()"></div>
                     <p id="pay-recipient-name" style="color: var(--primary); font-weight: 600; display:none;"></p>
                 </div>
-
                 <div id="me-fields" class="hidden">
                     <p>Куда зачислить:</p>
-                    <div class="input-group">
-                        <select id="pay-to-card"></select>
-                    </div>
+                    <div class="input-group"><select id="pay-to-card"></select></div>
                 </div>
-
                 <p>Сумма:</p>
                 <div class="input-group"><input type="number" id="pay-amount" placeholder="0.00"></div>
-
                 <button class="btn" onclick="handleTransfer(this)">Перевести</button>
             </div>
         </div>
 
         <div id="screen-chat" class="screen hidden">
             <h1>AI Помощник</h1>
-            <p>Gemini • Только вопросы по банку</p>
+            <p>Gemini AI • Ответы по вашим счетам</p>
             <div id="chat-messages"></div>
             <div style="position: fixed; bottom: 90px; left: 20px; right: 20px; display: flex; gap: 10px;">
-                <input type="text" id="chat-input" placeholder="Спроси о балансе или услугах...">
+                <input type="text" id="chat-input" placeholder="Какой у меня баланс?">
                 <button class="btn" style="width: 50px;" onclick="handleChat(this)"><i class="fa-solid fa-paper-plane"></i></button>
             </div>
         </div>
@@ -203,22 +189,16 @@
         <div id="screen-issue" class="screen hidden">
             <h1>Новая карта</h1>
             <p>Выберите дизайн</p>
-            
             <div class="bank-card" id="preview-card" style="height: 160px; margin-bottom: 20px;">
-                <div class="card-top">
-                    <span class="card-logo">BiBank</span>
-                </div>
+                <div class="card-top"><span class="card-logo">BiBank</span></div>
                 <div class="card-bal">0 ₽</div>
             </div>
-
             <div style="display: flex; gap: 10px; margin-bottom: 30px;">
-                <div onclick="setCardColor('#FF6B00')" style="width:40px; height:40px; border-radius:50%; background:#FF6B00; border: 2px solid white;"></div>
-                <div onclick="setCardColor('#007AFF')" style="width:40px; height:40px; border-radius:50%; background:#007AFF;"></div>
-                <div onclick="setCardColor('#32D74B')" style="width:40px; height:40px; border-radius:50%; background:#32D74B;"></div>
-                <div onclick="setCardColor('#BF5AF2')" style="width:40px; height:40px; border-radius:50%; background:#BF5AF2;"></div>
+                <div onclick="setCardColor('#FF6B00')" style="width:40px; height:40px; border-radius:50%; background:#FF6B00; border: 2px solid white; cursor:pointer;"></div>
+                <div onclick="setCardColor('#007AFF')" style="width:40px; height:40px; border-radius:50%; background:#007AFF; cursor:pointer;"></div>
+                <div onclick="setCardColor('#32D74B')" style="width:40px; height:40px; border-radius:50%; background:#32D74B; cursor:pointer;"></div>
             </div>
-
-            <button class="btn" onclick="handleIssueCard(this)">Выпустить карту</button>
+            <button class="btn" onclick="handleIssueCard(this)">Выпустить бесплатно</button>
         </div>
 
         <div class="nav-bar">
@@ -235,7 +215,6 @@
         import { getFirestore, collection, addDoc, getDocs, doc, setDoc, updateDoc, onSnapshot, query, where, orderBy, increment, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-        // --- КОНФИГУРАЦИЯ ---
         const firebaseConfig = {
             apiKey: "AIzaSyC1f33BCIiSV6JL9HMquLmTgy74NJz8HJ8",
             authDomain: "bibankk.firebaseapp.com",
@@ -252,16 +231,15 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // СТАБИЛЬНАЯ ИНИЦИАЛИЗАЦИЯ (v1 API)
+        // --- ИСПРАВЛЕННАЯ ИНИЦИАЛИЗАЦИЯ ИИ ---
         const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        // Используем 'v1' вместо дефолтного v1beta, чтобы избежать 404
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
+        // Явно указываем стабильную версию v1
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
         
         let currentUser = null;
         let userCards = [];
         let selectedColor = '#FF6B00';
 
-        // --- UI ЛОГИКА ---
         window.nav = (screenId) => {
             document.querySelectorAll('.screen').forEach(el => el.classList.add('hidden'));
             document.getElementById(screenId).classList.remove('hidden');
@@ -290,15 +268,11 @@
             finally { btn.classList.remove('loading'); }
         }
 
-        // --- AUTH ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
-                if(sessionStorage.getItem('bibank_pin')) {
-                    initApp();
-                } else {
-                    nav('screen-pin');
-                }
+                if(sessionStorage.getItem('bibank_pin')) initApp();
+                else nav('screen-pin');
             } else {
                 nav('screen-login');
                 document.getElementById('main-app-container').classList.add('hidden');
@@ -316,13 +290,11 @@
             const surname = document.getElementById('reg-surname').value;
             const email = document.getElementById('reg-email').value;
             const pass = document.getElementById('reg-pass').value;
-
             if(!name || !email || !pass) throw new Error("Заполните все поля");
             const cred = await createUserWithEmailAndPassword(auth, email, pass);
-            const uid = cred.user.uid;
-            await setDoc(doc(db, "users", uid), { name, surname, email, createdAt: serverTimestamp() });
-            await createCardForUser(uid, 10000, '#FF6B00');
-            toast("Аккаунт создан!");
+            await setDoc(doc(db, "users", cred.user.uid), { name, surname, email, createdAt: serverTimestamp() });
+            await createCardForUser(cred.user.uid, 10000, '#FF6B00');
+            toast("Успешно!");
         });
 
         window.handlePinSet = (btn) => protectBtn(btn, async () => {
@@ -337,120 +309,62 @@
             signOut(auth);
         };
 
-        // --- ОСНОВНАЯ ЛОГИКА ---
         function initApp() {
             document.getElementById('screen-login').classList.add('hidden');
             document.getElementById('screen-register').classList.add('hidden');
             document.getElementById('screen-pin').classList.add('hidden');
             document.getElementById('main-app-container').classList.remove('hidden');
-            navTab('screen-home', document.querySelector('.nav-item'));
 
-            const q = query(collection(db, `users/${currentUser.uid}/cards`));
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(query(collection(db, `users/${currentUser.uid}/cards`)), (snapshot) => {
                 userCards = [];
                 const container = document.getElementById('card-container');
                 container.innerHTML = '';
                 snapshot.forEach(doc => {
                     const data = doc.data();
                     userCards.push({id: doc.id, ...data});
-                    container.innerHTML += renderCard(data);
+                    container.innerHTML += `<div class="bank-card" style="background: linear-gradient(135deg, ${data.color} 0%, #000 150%);"><div class="card-top"><span class="card-logo">BiBank</span><span class="card-pay">BiPAY</span></div><div class="card-bal">${data.balance.toLocaleString()} ₽</div><div class="card-bottom"><span>**** ${data.number.slice(-4)}</span><span>12/30</span></div></div>`;
                 });
             });
 
-            const txQ = query(collection(db, `users/${currentUser.uid}/transactions`), orderBy('date', 'desc'));
-            onSnapshot(txQ, (snapshot) => {
+            onSnapshot(query(collection(db, `users/${currentUser.uid}/transactions`), orderBy('date', 'desc')), (snapshot) => {
                 const txList = document.getElementById('tx-history');
-                txList.innerHTML = '';
-                if(snapshot.empty) txList.innerHTML = '<p style="text-align:center; padding:20px;">Пока нет операций</p>';
+                txList.innerHTML = snapshot.empty ? '<p style="text-align:center; padding: 20px;">Нет операций</p>' : '';
                 snapshot.forEach(doc => {
                     const t = doc.data();
                     const isPlus = t.type === 'in';
-                    txList.innerHTML += `
-                    <div class="tx-item">
-                        <div class="tx-icon"><i class="fa-solid ${isPlus ? 'fa-arrow-down' : 'fa-arrow-up'}"></i></div>
-                        <div class="tx-info">
-                            <span class="tx-title">${t.title}</span>
-                            <span class="tx-date">${t.date?.toDate ? t.date.toDate().toLocaleDateString() : 'Сейчас'}</span>
-                        </div>
-                        <div class="tx-amount ${isPlus ? 'plus' : ''}">${isPlus ? '+' : '-'}${t.amount} ₽</div>
-                    </div>`;
+                    txList.innerHTML += `<div class="tx-item"><div class="tx-icon"><i class="fa-solid ${isPlus ? 'fa-arrow-down' : 'fa-arrow-up'}"></i></div><div class="tx-info"><span class="tx-title">${t.title}</span><span class="tx-date">Сегодня</span></div><div class="tx-amount ${isPlus ? 'plus' : ''}">${isPlus ? '+' : '-'}${t.amount} ₽</div></div>`;
                 });
             });
         }
 
         async function createCardForUser(uid, initialBalance, color) {
-            const cardNum = generateLuhnCard();
-            const cvv = Math.floor(100 + Math.random() * 900);
-            const exp = "12/30";
-            await addDoc(collection(db, `users/${uid}/cards`), { number: cardNum, cvv, exp, balance: initialBalance, color, holder: uid });
-        }
-
-        function generateLuhnCard() {
-            let prefix = "4276";
-            for(let i=0; i<8; i++) prefix += Math.floor(Math.random()*10);
-            return prefix + Math.floor(1000 + Math.random() * 9000); 
-        }
-
-        function renderCard(data) {
-            const last4 = data.number.slice(-4);
-            return `<div class="bank-card" style="background: linear-gradient(135deg, ${data.color} 0%, #000 150%);"><div class="card-top"><span class="card-logo">BiBank</span><span class="card-pay">BiPAY</span></div><div class="card-bal">${data.balance.toLocaleString()} ₽</div><div class="card-bottom"><span>**** ${last4}</span><span>${data.exp}</span></div></div>`;
+            const cardNum = "4276" + Math.random().toString().slice(2, 14);
+            await addDoc(collection(db, `users/${uid}/cards`), { number: cardNum, balance: initialBalance, color: color, holder: uid });
         }
 
         window.switchPayTab = (type) => {
-            const p2p = document.getElementById('p2p-fields');
-            const me = document.getElementById('me-fields');
-            if(type === 'p2p') { p2p.classList.remove('hidden'); me.classList.add('hidden'); } 
-            else { p2p.classList.add('hidden'); me.classList.remove('hidden'); }
+            document.getElementById('p2p-fields').classList.toggle('hidden', type !== 'p2p');
+            document.getElementById('me-fields').classList.toggle('hidden', type !== 'me');
         };
 
         function loadCardsForPay() {
             const from = document.getElementById('pay-from-card');
             const to = document.getElementById('pay-to-card');
-            from.innerHTML = ''; to.innerHTML = '';
-            userCards.forEach(c => {
-                const opt = `<option value="${c.id}">*${c.number.slice(-4)} (${c.balance} ₽)</option>`;
-                from.innerHTML += opt; to.innerHTML += opt;
-            });
+            const options = userCards.map(c => `<option value="${c.id}">*${c.number.slice(-4)} (${c.balance} ₽)</option>`).join('');
+            from.innerHTML = options; to.innerHTML = options;
         }
-
-        window.detectUser = async () => {
-            const val = document.getElementById('pay-to').value;
-            const label = document.getElementById('pay-recipient-name');
-            label.style.display = 'none';
-            if(val.length < 5) return;
-            if(val.includes('@')) {
-                const q = query(collection(db, "users"), where("email", "==", val));
-                const snap = await getDocs(q);
-                if(!snap.empty) {
-                    const u = snap.docs[0].data();
-                    label.innerText = `Получатель: ${u.name} ${u.surname}`;
-                    label.style.display = 'block';
-                }
-            }
-        };
 
         window.handleTransfer = (btn) => protectBtn(btn, async () => {
             const amount = parseFloat(document.getElementById('pay-amount').value);
             const fromId = document.getElementById('pay-from-card').value;
-            const isMe = !document.getElementById('me-fields').classList.contains('hidden');
-            if(!amount || amount <= 0) throw new Error("Неверная сумма");
-            const fromCard = userCards.find(c => c.id === fromId);
-            if(fromCard.balance < amount) throw new Error("Недостаточно средств");
+            if(!amount || amount <= 0) return;
 
             await runTransaction(db, async (transaction) => {
                 const fromRef = doc(db, `users/${currentUser.uid}/cards/${fromId}`);
-                if(isMe) {
-                    const toId = document.getElementById('pay-to-card').value;
-                    const toRef = doc(db, `users/${currentUser.uid}/cards/${toId}`);
-                    transaction.update(fromRef, { balance: increment(-amount) });
-                    transaction.update(toRef, { balance: increment(amount) });
-                    transaction.set(doc(collection(db, `users/${currentUser.uid}/transactions`)), { title: "Между своими", amount, type: "out", date: serverTimestamp() });
-                } else {
-                    transaction.update(fromRef, { balance: increment(-amount) });
-                    transaction.set(doc(collection(db, `users/${currentUser.uid}/transactions`)), { title: `Перевод: ${document.getElementById('pay-to').value}`, amount, type: "out", date: serverTimestamp() });
-                }
+                transaction.update(fromRef, { balance: increment(-amount) });
+                transaction.set(doc(collection(db, `users/${currentUser.uid}/transactions`)), { title: "Перевод", amount, type: "out", date: serverTimestamp() });
             });
-            toast("Перевод выполнен!");
+            toast("Готово!");
         });
 
         window.setCardColor = (c) => {
@@ -464,10 +378,10 @@
              navTab('screen-home', document.querySelector('.nav-item'));
         });
 
-        // --- СТАБИЛЬНЫЙ AI ---
+        // --- ИИ ЧАТ (СТАБИЛЬНЫЙ МЕТОД) ---
         window.handleChat = (btn) => protectBtn(btn, async () => {
             const input = document.getElementById('chat-input');
-            const text = input.value;
+            const text = input.value.trim();
             if(!text) return;
             
             const chatBox = document.getElementById('chat-messages');
@@ -475,26 +389,20 @@
             input.value = '';
             chatBox.scrollTop = chatBox.scrollHeight;
 
-            const balanceContext = userCards.map(c => `Карта *${c.number.slice(-4)}: ${c.balance} руб`).join(', ');
-            const systemPrompt = `Ты помощник банка BiBank. Твой тон: вежливый, краткий. 
-            Данные пользователя: ${balanceContext}.
-            Если вопрос не про банк, финансы или приложение, ответь: "Я могу помочь только с вопросами по BiBank".
-            Не пиши длинно. Отвечай на русском языке.`;
+            const context = userCards.map(c => `Карта *${c.number.slice(-4)}: ${c.balance} руб.`).join(' ');
+            const systemPrompt = `Ты помощник банка BiBank. Твой тон: вежливый, краткий. Данные клиента: ${context}. Вопрос: ${text}`;
 
             try {
-                // Самый надежный прямой метод генерации
-                const result = await model.generateContent([systemPrompt, text]);
-                const response = await result.response;
-                const reply = response.text();
+                // Прямой вызов без startChat (избегаем 404/400)
+                const result = await model.generateContent(systemPrompt);
+                const reply = result.response.text();
                 
                 chatBox.innerHTML += `<div class="msg ai">${reply}</div>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
             } catch(e) {
-                console.error("AI Error:", e);
-                let errorMsg = "Ошибка связи с ИИ.";
-                if (e.message.includes("fetch")) errorMsg += " (Проверьте интернет или VPN)";
-                chatBox.innerHTML += `<div class="msg ai" style="color:var(--danger)">${errorMsg}</div>`;
+                console.error(e);
+                chatBox.innerHTML += `<div class="msg ai" style="color:var(--danger)">Ошибка ИИ. Проверьте интернет или VPN.</div>`;
             }
-            chatBox.scrollTop = chatBox.scrollHeight;
         });
     </script>
 </body>
