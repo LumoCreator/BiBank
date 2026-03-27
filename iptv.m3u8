@@ -1,4 +1,4 @@
 #EXTM3U
 #EXTINF:0 tvg-rec="0",IPTV
 #EXTGRP:IPTV
-http://192.168.0.101/tmp_hls/stream/index.m3u8
+http://192.168.0.109/tmp_hls/stream/index.m3u8
