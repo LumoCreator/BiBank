@@ -1,229 +1,204 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BiBank | Premium Banking</title>
+    <title>Управление терминалом — MyBiBank</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* BiBank Branding & Glassmorphism */
-        :root { --bibank-green: #00875A; }
-        body { background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); color: #1f2937; }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); }
-        .bg-emerald { background-color: var(--bibank-green); }
-        .text-emerald { color: var(--bibank-green); }
-        
-        /* 3D Card Flip CSS */
-        .perspective { perspective: 1000px; }
-        .preserve-3d { transform-style: preserve-3d; transition: transform 0.6s; }
-        .backface-hidden { backface-visibility: hidden; }
-        .rotate-y-180 { transform: rotateY(180deg); }
-        .card-container:hover .preserve-3d { transform: rotateY(180deg); }
-
-        /* Toast Animations */
-        @keyframes slideIn { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .toast-animate { animation: slideIn 0.3s ease-out forwards; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f0f4f8; 
+            background-image: radial-gradient(circle at top right, #e2e8f0 0%, #f0f4f8 100%);
+        }
+        .glass-card { 
+            background: rgba(255, 255, 255, 0.95); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(255, 255, 255, 1); 
+        }
+        .step-hidden { display: none; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6">
+<body class="flex items-center justify-center min-h-screen p-4">
 
-    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
-
-    <div id="auth-view" class="glass rounded-2xl p-8 w-full max-w-md shadow-2xl transition-all duration-500">
-        <h1 class="text-3xl font-bold text-center mb-2 text-emerald">BiBank</h1>
-        <p class="text-center text-gray-500 mb-6">Enter your Card Number to continue</p>
-        
-        <input id="auth-card" type="text" placeholder="Card Number (e.g., 12345678)" class="w-full p-3 rounded-lg border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-[#00875A]">
-        <input id="auth-pin" type="password" placeholder="4-Digit PIN" class="w-full p-3 rounded-lg border border-gray-300 mb-6 focus:outline-none focus:ring-2 focus:ring-[#00875A]">
-        
-        <button id="btn-login" class="w-full bg-emerald text-white p-3 rounded-lg font-semibold hover:bg-[#006b47] transition">Login</button>
-        <button id="btn-register" class="w-full mt-3 bg-gray-200 text-gray-700 p-3 rounded-lg font-semibold hover:bg-gray-300 transition">Create Account</button>
-    </div>
-
-    <div id="dashboard-view" class="hidden w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-6 transition-all duration-500">
-        
-        <div class="md:col-span-1 space-y-6">
-            <div class="glass rounded-2xl p-6 shadow-xl">
-                <h2 class="text-gray-500 text-sm font-semibold uppercase tracking-wider">Total Balance</h2>
-                <h1 id="display-balance" class="text-4xl font-bold text-gray-900 mt-2">$0.00</h1>
-                <p id="user-greeting" class="text-sm text-gray-400 mt-1">Welcome back</p>
-                <button id="btn-logout" class="mt-4 text-xs text-red-500 border border-red-500 px-3 py-1 rounded hover:bg-red-500 hover:text-white transition">Logout</button>
+    <div class="max-w-md w-full space-y-6">
+        <div class="text-center mb-2">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-600 rounded-xl mb-3 shadow-lg shadow-blue-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
             </div>
-
-            <div class="card-container perspective w-full h-48 cursor-pointer">
-                <div class="preserve-3d relative w-full h-full">
-                    <div class="absolute w-full h-full backface-hidden bg-gradient-to-br from-[#00875A] to-gray-900 text-white rounded-2xl p-5 shadow-lg flex flex-col justify-between">
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-lg tracking-widest">BiBank</span>
-                            <svg class="w-8 h-8 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                        </div>
-                        <div>
-                            <p id="card-display-number" class="text-xl tracking-widest font-mono mb-1">**** **** **** ****</p>
-                            <p class="text-xs uppercase opacity-80">Virtual Debit</p>
-                        </div>
-                    </div>
-                    <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-gray-800 text-white rounded-2xl shadow-lg">
-                        <div class="w-full h-10 bg-black mt-4"></div>
-                        <div class="p-4 flex justify-end">
-                            <div class="bg-white text-black p-1 px-3 rounded text-sm font-mono">CVV: 123</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <h1 class="text-2xl font-bold text-slate-800 tracking-tight">MyBiBank Service</h1>
         </div>
 
-        <div class="md:col-span-2 space-y-6">
+        <div class="glass-card p-8 rounded-[2.5rem] shadow-2xl shadow-blue-900/5 transition-all">
             
-            <div class="glass rounded-2xl p-6 shadow-xl flex gap-4 items-end">
-                <div class="flex-1">
-                    <label class="text-sm text-gray-500">Transfer To (Card No)</label>
-                    <input id="tx-recipient" type="text" class="w-full mt-1 p-2 rounded border border-gray-300 focus:outline-none focus:border-[#00875A]">
+            <div id="step-login" class="space-y-5">
+                <div class="text-center mb-6">
+                    <h2 class="text-lg font-semibold text-slate-700">Идентификация</h2>
+                    <p class="text-slate-400 text-sm">Введите пятизначный номер устройства</p>
                 </div>
-                <div class="w-32">
-                    <label class="text-sm text-gray-500">Amount ($)</label>
-                    <input id="tx-amount" type="number" class="w-full mt-1 p-2 rounded border border-gray-300 focus:outline-none focus:border-[#00875A]">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 ml-1">Terminal ID</label>
+                    <input type="text" id="terminalID" maxlength="5" placeholder="00000"
+                        class="w-full px-4 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-2xl tracking-[0.5em] text-center font-mono font-bold text-slate-700">
                 </div>
-                <button id="btn-transfer" class="bg-emerald text-white px-6 py-2 rounded font-semibold hover:bg-[#006b47] transition mb-[1px]">Send</button>
+                <button onclick="goToTerminal()" 
+                    class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 rounded-2xl transition-all shadow-lg active:scale-[0.98]">
+                    Войти в систему
+                </button>
             </div>
 
-            <div class="glass rounded-2xl p-6 shadow-xl">
-                <h3 class="font-bold text-gray-700 mb-4">Spending Analytics</h3>
-                <canvas id="spendingChart" height="80"></canvas>
+            <div id="step-dashboard" class="step-hidden space-y-6">
+                <div class="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                    <div>
+                        <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Статус системы</p>
+                        <p class="text-sm font-bold text-emerald-800">Терминал: <span id="display-id">-----</span></p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs font-medium text-emerald-600">Online</span>
+                        <span class="relative flex h-3 w-3">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="py-12 text-center border-2 border-dashed border-slate-100 rounded-[2rem] bg-slate-50/50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                    <p class="text-slate-400 text-sm">Ожидание действий</p>
+                </div>
+
+                <button onclick="goToPayment()"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl shadow-xl shadow-blue-200 transition-all active:scale-[0.98]">
+                    Новый платеж
+                </button>
             </div>
+
+            <div id="step-payment" class="step-hidden space-y-5">
+                <button onclick="backToDashboard()" class="group flex items-center text-slate-400 hover:text-blue-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span class="text-xs font-semibold uppercase tracking-wider">Назад</span>
+                </button>
+
+                <div class="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 text-center">Сумма платежа (RUB)</label>
+                    <input type="number" id="amount" value="3000"
+                        class="w-full bg-transparent focus:outline-none text-4xl font-black text-center text-slate-800 placeholder-slate-300">
+                </div>
+
+                <button id="btn-accept" onclick="handlePayment()"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-5 rounded-2xl shadow-xl shadow-emerald-200 transition-all flex items-center justify-center overflow-hidden relative">
+                    <span id="btn-text" class="relative z-10">ПРИНЯТЬ ОПЛАТУ</span>
+                    <div id="loader" class="hidden animate-spin h-6 w-6 border-3 border-white border-t-transparent rounded-full ml-3 relative z-10"></div>
+                </button>
+            </div>
+
         </div>
+
+        <div id="status-log" class="text-center text-[10px] text-slate-400 font-mono uppercase tracking-tighter opacity-60"></div>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDocY29uc3QgZmlyZWJhc2VDb25maWcgPSB7CsKgIGFwaUtleTogIkFJemFTeURKaEJ0a0tpeWVINWJPSFg3Qi1xLUJVcFFQYjRGWnZURSIsCsKgIGF1dGhEb21haW46ICJiaWJhbmsxLmZpcmViYXNlYXBwLmNvbSIsCsKgIHByb2plY3RJZDogImJpYmFuazEiLArCoCBzdG9yYWdlQnVja2V0OiAiYmliYW5rMS5maXJlYmFzZXN0b3JhZ2UuYXBwIiwKwqAgbWVzc2FnaW5nU2VuZGVySWQ6ICIyNzA3OTQ2MTQyMjkiLArCoCBhcHBJZDogIjE6MjcwNzk0NjE0MjI5OndlYjpmOTRlOTdkYzRiNTkyZjlmNDQ4OTVjIiwKwqAgbWVhc3VyZW1lbnRJZDogIkctREVUVDI0RTAyTSIKfTs=, onSnapshot, runTransaction, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CREDENTIAL OBFUSCATION (Replace with your actual base64 encoded config)
-        // e.g. btoa(JSON.stringify({ apiKey: "...", projectId: "..." }))
-        const b64Config = "Y29uc3QgZmlyZWJhc2VDb25maWcgPSB7CsKgIGFwaUtleTogIkFJemFTeURKaEJ0a0tpeWVINWJPSFg3Qi1xLUJVcFFQYjRGWnZURSIsCsKgIGF1dGhEb21haW46ICJiaWJhbmsxLmZpcmViYXNlYXBwLmNvbSIsCsKgIHByb2plY3RJZDogImJpYmFuazEiLArCoCBzdG9yYWdlQnVja2V0OiAiYmliYW5rMS5maXJlYmFzZXN0b3JhZ2UuYXBwIiwKwqAgbWVzc2FnaW5nU2VuZGVySWQ6ICIyNzA3OTQ2MTQyMjkiLArCoCBhcHBJZDogIjE6MjcwNzk0NjE0MjI5OndlYjpmOTRlOTdkYzRiNTkyZjlmNDQ4OTVjIiwKwqAgbWVhc3VyZW1lbnRJZDogIkctREVUVDI0RTAyTSI="; // Dummy base64 for {"projectId":"mock-bibank"}
-        
-        let app, auth, db;
-        try {
-            const firebaseConfig = JSON.parse(atob(b64Config));
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-        } catch(e) { console.error("Firebase init failed due to invalid config."); }
+        // Ваша конфигурация
+        const firebaseConfig = {
+            apiKey: "AIzaSyBUtgbz0Pgs86SzCqPxs4nnIKCVzXB8MvI",
+            authDomain: "mybibankservice.firebaseapp.com",
+            projectId: "mybibankservice",
+            storageBucket: "mybibankservice.firebasestorage.app",
+            messagingSenderId: "502327590363",
+            appId: "1:502327590363:web:67980f205f9dc109bf3bfe",
+            measurementId: "G-FXHT9QJ5MV"
+        };
 
-        // UI Elements
-        const authView = document.getElementById('auth-view');
-        const dashboardView = document.getElementById('dashboard-view');
-        let currentUserDocRef = null;
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        // Toast Notification System
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = `toast-animate px-4 py-3 rounded-lg shadow-lg text-white text-sm font-semibold ${type === 'success' ? 'bg-emerald' : 'bg-red-500'}`;
-            toast.textContent = message;
-            container.appendChild(toast);
-            setTimeout(() => { toast.remove(); }, 3000);
+        // Интерфейсная логика
+        window.goToTerminal = () => {
+            const id = document.getElementById('terminalID').value.trim();
+            if (id.length === 5) {
+                document.getElementById('display-id').innerText = id;
+                showStep('step-dashboard');
+            } else {
+                alert('Пожалуйста, введите корректный 5-значный ID');
+            }
+        };
+
+        window.goToPayment = () => showStep('step-payment');
+        window.backToDashboard = () => showStep('step-dashboard');
+
+        function showStep(stepId) {
+            ['step-login', 'step-dashboard', 'step-payment'].forEach(id => {
+                document.getElementById(id).classList.add('step-hidden');
+            });
+            document.getElementById(stepId).classList.remove('step-hidden');
         }
 
-        // Auth Mock Logic (Mapping Card Number to an Email for Firebase Auth)
-        const formatEmail = (card) => `${card}@bibank.mock`;
+        // Основная функция записи в Firestore
+        window.handlePayment = async () => {
+            const terminalID = document.getElementById('terminalID').value.trim();
+            const amountInput = document.getElementById('amount').value;
+            const amount = parseInt(amountInput);
+            
+            const btn = document.getElementById('btn-accept');
+            const btnText = document.getElementById('btn-text');
+            const loader = document.getElementById('loader');
+            const log = document.getElementById('status-log');
 
-        document.getElementById('btn-login').addEventListener('click', async () => {
-            const card = document.getElementById('auth-card').value;
-            const pin = document.getElementById('auth-pin').value;
+            if (isNaN(amount) || amount <= 0) {
+                alert('Введите корректную сумму');
+                return;
+            }
+
+            // Визуальное состояние загрузки
+            btn.disabled = true;
+            btnText.innerText = "ОБРАБОТКА...";
+            loader.classList.remove('hidden');
+            btn.classList.add('opacity-90');
+
             try {
-                await signInWithEmailAndPassword(auth, formatEmail(card), pin);
-                showToast("Login Successful!");
-            } catch (error) { showToast("Invalid Card or PIN", "error"); }
-        });
-
-        document.getElementById('btn-register').addEventListener('click', async () => {
-            const card = document.getElementById('auth-card').value;
-            const pin = document.getElementById('auth-pin').value;
-            try {
-                const userCred = await createUserWithEmailAndPassword(auth, formatEmail(card), pin);
-                await setDoc(doc(db, "users", userCred.user.uid), {
-                    cardNo: card, balance: 0.00, role: "User", isFrozen: false, createdAt: serverTimestamp()
-                });
-                showToast("Account Created!");
-            } catch (error) { showToast("Error creating account", "error"); }
-        });
-
-        document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
-
-        // Persistence & Real-time updates
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                authView.classList.add('hidden');
-                dashboardView.classList.remove('hidden');
-                currentUserDocRef = doc(db, "users", user.uid);
+                // Путь: terminals/{terminalID}
+                const ref = doc(db, 'terminals', terminalID);
                 
-                // Real-time Balance Snapshot
-                onSnapshot(currentUserDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        document.getElementById('display-balance').innerText = `$${parseFloat(data.balance).toFixed(2)}`;
-                        document.getElementById('card-display-number').innerText = data.cardNo.replace(/(.{4})/g, '$1 ').trim();
-                        if(data.isFrozen) showToast("Account Frozen by Admin", "error");
-                    }
-                });
-            } else {
-                authView.classList.remove('hidden');
-                dashboardView.classList.add('hidden');
+                await setDoc(ref, {
+                    status: 'processing',
+                    command: 'accept',
+                    amount: amount,
+                    updatedAt: serverTimestamp()
+                }, { merge: true });
+
+                log.innerText = `LAST CMD: ACCEPT | ID: ${terminalID} | SUM: ${amount} | ${new Date().toLocaleTimeString()}`;
+                
+                // Визуальное подтверждение успеха
+                btnText.innerText = "ГОТОВО!";
+                btn.classList.replace('bg-emerald-600', 'bg-blue-600');
+                loader.classList.add('hidden');
+                
+                setTimeout(() => {
+                    btnText.innerText = "ПРИНЯТЬ ОПЛАТУ";
+                    btn.classList.replace('bg-blue-600', 'bg-emerald-600');
+                    btn.disabled = false;
+                    backToDashboard();
+                }, 1500);
+
+            } catch (error) {
+                console.error("Ошибка при записи в Firestore:", error);
+                alert('Ошибка отправки. Проверьте настройки доступа Firestore.');
+                btn.disabled = false;
+                btnText.innerText = "ПРИНЯТЬ ОПЛАТУ";
+                loader.classList.add('hidden');
             }
-        });
-
-        // Atomic P2P Transfer Logic
-        document.getElementById('btn-transfer').addEventListener('click', async () => {
-            if(!auth.currentUser) return;
-            const recipientCard = document.getElementById('tx-recipient').value;
-            const amount = parseFloat(document.getElementById('tx-amount').value);
-
-            if (!amount || amount <= 0) return showToast("Enter a valid amount", "error");
-
-            try {
-                await runTransaction(db, async (transaction) => {
-                    // 1. Read sender doc
-                    const senderDoc = await transaction.get(currentUserDocRef);
-                    if (!senderDoc.exists() || senderDoc.data().isFrozen) throw "Account frozen or unavailable";
-                    
-                    const newBalance = senderDoc.data().balance - amount;
-                    if (newBalance < 0) throw "Insufficient funds";
-
-                    // 2. Find recipient via query (mocked lookup for simplicity, in reality use a Cloud Function)
-                    // Note: Firestore runTransaction requires all reads before writes. 
-                    // Assuming we have recipient UID mapped or available. For this frontend mock, we will 
-                    // simulate the transfer. In production, NEVER do client-side recipient lookups for tx.
-                    
-                    transaction.update(currentUserDocRef, { balance: newBalance });
-                    // Log transaction
-                    const txRef = doc(collection(db, "transactions"));
-                    transaction.set(txRef, {
-                        senderId: auth.currentUser.uid, amount: amount, timestamp: serverTimestamp()
-                    });
-                });
-                showToast(`Transferred $${amount} successfully!`);
-                document.getElementById('tx-amount').value = '';
-            } catch (e) {
-                showToast(e.toString(), "error");
-            }
-        });
-
-        // Initialize Chart.js
-        const ctx = document.getElementById('spendingChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Spending ($)', data: [12, 19, 3, 5, 2, 30, 45],
-                    borderColor: '#00875A', backgroundColor: 'rgba(0, 135, 90, 0.1)',
-                    tension: 0.4, fill: true
-                }]
-            },
-            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-        });
+        };
     </script>
 </body>
 </html>
