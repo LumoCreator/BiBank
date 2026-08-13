@@ -17,13 +17,13 @@
             <key>metadata</key>
             <dict>
                 <key>bundle-identifier</key>
-                <string>ziko.Ion</string>
+                <string>com.staturnz.socket</string>
                 <key>bundle-version</key>
-                <string>1.0.0</string>
+                <string>1.2.2</string>
                 <key>kind</key>
                 <string>software</string>
                 <key>title</key>
-                <string>Ion</string>
+                <string>Socket</string>
             </dict>
         </dict>
     </array>
