@@ -17,13 +17,13 @@
             <key>metadata</key>
             <dict>
                 <key>bundle-identifier</key>
-                <string>com.staturnz.socket</string>
+                <string>com.staturnz.socket.KVCYXKN647</string>
                 <key>bundle-version</key>
                 <string>1.2.2</string>
                 <key>kind</key>
                 <string>software</string>
                 <key>title</key>
-                <string>Socket</string>
+                <string>socket</string>
             </dict>
         </dict>
     </array>
